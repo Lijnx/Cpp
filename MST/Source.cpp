@@ -4,16 +4,52 @@
 #include <algorithm>
 using namespace std;
 
+class DSU
+{
+private:
+	int* parent;
+	int* rank;
+public:
+	DSU(int size)
+	{
+		parent = new int[size];
+		rank = new int[size];
+	}
+
+	~DSU()
+	{
+		delete[] parent;
+		delete[] rank;
+	}
+
+	void make_set(int v) {
+		parent[v] = v;
+		rank[v] = 0;
+	}
+
+	int find_set(int v) {
+		if (v == parent[v])
+			return v;
+		return parent[v] = find_set(parent[v]);
+	}
+
+	void union_sets(int a, int b) {
+		a = find_set(a);
+		b = find_set(b);
+		if (a != b) {
+			if (rank[a] < rank[b])
+				swap(a, b);
+			parent[b] = a;
+			if (rank[a] == rank[b])
+				++rank[a];
+		}
+	}
+};
+
 class Graph
 {
 private:
-	struct Line
-	{
-		int node0;
-		int node1;
-		int weight;
-	};
-	vector<Line> lines;
+	vector<pair<int, pair<int, int>>> G;
 	int size;
 public:
 	Graph()
@@ -28,6 +64,7 @@ public:
 
 	~Graph()
 	{
+		G.clear();
 	}
 
 	void set_lines(string filename)
@@ -37,38 +74,39 @@ public:
 
 		while (!fin.eof())
 		{
-			Line buf;
-			fin >> buf.node0;
-			fin >> buf.node1;
-			fin >> buf.weight;
-			lines.push_back(buf);
+			int a, b, l;
+			fin >> a;
+			fin >> b;
+			fin >> l;
+			G.push_back(make_pair(l, make_pair(a - 1, b - 1)));
 		}
-	}
-
-	void sort_lines()
-	{
-		for (int i = 0; i < lines.size() - 1; i++)
-			for (int j = 0; j < lines.size() - i - 1; j++)
-				if (lines.at(j).weight > lines.at(j + 1).weight)
-					swap(lines.at(j), lines.at(j + 1));
 	}
 
 	void MST()
 	{
-		int* node_array = new int[size];
+		sort(G.begin(), G.end());
+		vector<pair<int, int>> result;
+		DSU dsu(size);
 		for (int i = 0; i < size; i++)
-			node_array[i] = i;
+			dsu.make_set(i);
 
-		sort_lines();
-
-		for (int i = 0; i < lines.size(); i++)
+		for (int i = 0; i < G.size(); i++)
 		{
-			node_array[lines.at(i).node1] = node_array[lines.at(i).node0];
+			int a = G[i].second.first, b = G[i].second.second, l = G[i].first;
+			if (dsu.find_set(a) != dsu.find_set(b))
+			{
+				result.push_back(G[i].second);
+				dsu.union_sets(a, b);
+			}
 		}
+
+		for (int i = 0; i < result.size(); i++)
+			cout << result.at(i).first + 1 << result.at(i).second + 1 << " ";
 	}
 };
 
 int main()
 {
-
+	Graph graph("lines.txt");
+	graph.MST();
 }
